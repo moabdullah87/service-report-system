@@ -194,7 +194,7 @@ def generate_service_pdf(data, output_path, photos_by_category=None):
     pdf.ln(2)
     pdf.section_title("7. VERIFICATION & SIGN-OFF")
     pdf.ln(2)
-    pdf.info_row("Service Engineer:", data.get("engineer_name", "Service Team"), "Customer Representative:", data.get("client_rep", ""), c1_w=32, c2_w=44)
+    pdf.info_row("Service Engineer:", f"{data.get('engineer_name', '')} ({data.get('engineer_email', '')})", "Customer Representative:", data.get("client_rep", ""), c1_w=32, c2_w=44)
     
     y_sig = pdf.get_y() + 1
     eng_sig = data.get("engineer_sig_path")

@@ -171,8 +171,16 @@
       <legend>6. Verification & Sign-off</legend>
       <div class="grid">
         <div class="form-group">
-          <label>Service Engineer</label>
-          <input type="text" name="engineer_name" required placeholder="Engineer Name">
+          <label>Service Engineer Name</label>
+          <input type="text" id="engNameInput" name="engineer_name" required placeholder="e.g. Mohamed Ali">
+        </div>
+        <div class="form-group">
+          <label>Engineer MCV Email</label>
+          <input type="email" id="engEmailInput" name="engineer_email" required placeholder="engineer@mcv-eg.com">
+        </div>
+
+        <div class="form-group">
+          <label>Engineer Signature</label>
           <div class="sig-wrapper">
             <button type="button" class="sig-clear-btn" onclick="clearSig('engSig')">Clear</button>
             <canvas id="engSig" class="sig-canvas"></canvas>
@@ -181,9 +189,9 @@
         </div>
 
         <div class="form-group">
-          <label>Customer Representative</label>
-          <input type="text" name="client_rep" placeholder="Client Rep Name">
-          <div class="sig-wrapper">
+          <label>Customer Representative Name</label>
+          <input type="text" name="client_rep" placeholder="Representative Name">
+          <div class="sig-wrapper" style="margin-top: 6px;">
             <button type="button" class="sig-clear-btn" onclick="clearSig('clientSig')">Clear</button>
             <canvas id="clientSig" class="sig-canvas"></canvas>
             <input type="hidden" name="client_signature" id="clientSigInput">
@@ -192,11 +200,22 @@
       </div>
     </fieldset>
 
-    <button id="submitBtn" type="submit" class="submit-btn">📄 Generate Service Report</button>
+    <button id="submitBtn" type="submit" class="submit-btn">📄 Generate & Send Service Report</button>
   </form>
 </div>
 
 <script>
+  // Auto-restore engineer details from localStorage
+  const engNameInput = document.getElementById("engNameInput");
+  const engEmailInput = document.getElementById("engEmailInput");
+
+  window.addEventListener("DOMContentLoaded", () => {
+    const savedName = localStorage.getItem("mcv_fsr_eng_name");
+    const savedEmail = localStorage.getItem("mcv_fsr_eng_email");
+    if (savedName) engNameInput.value = savedName;
+    if (savedEmail) engEmailInput.value = savedEmail;
+  });
+
   function addPartRow() {
     const tbody = document.getElementById("partsBody");
     const tr = document.createElement("tr");
@@ -215,6 +234,7 @@
     tbody.appendChild(tr);
   }
 
+  // --- Signature Pad Logic ---
   function setupSignature(canvasId, inputId) {
     const canvas = document.getElementById(canvasId);
     const ctx = canvas.getContext("2d");
@@ -287,17 +307,20 @@
   setupSignature("engSig", "engSigInput");
   setupSignature("clientSig", "clientSigInput");
 
-  // Prevent double submissions
+  // Prevent double submissions and save profile locally
   const form = document.getElementById("reportForm");
   const btn = document.getElementById("submitBtn");
 
   form.addEventListener("submit", function() {
+    localStorage.setItem("mcv_fsr_eng_name", engNameInput.value.trim());
+    localStorage.setItem("mcv_fsr_eng_email", engEmailInput.value.trim());
+
     btn.disabled = true;
-    btn.innerHTML = "⏳ Opening Report... Please wait";
+    btn.innerHTML = "⏳ Generating & Sending... Please wait";
     setTimeout(() => {
       btn.disabled = false;
-      btn.innerHTML = "📄 Generate Service Report";
-    }, 4000);
+      btn.innerHTML = "📄 Generate & Send Service Report";
+    }, 4500);
   });
 </script>
 </body>
