@@ -7,7 +7,6 @@
   <style>
     :root {
       --primary: #1e3a8a;
-      --primary-hover: #172554;
       --bg: #f8fafc;
       --card-bg: #ffffff;
       --border: #cbd5e1;
@@ -15,26 +14,26 @@
       --muted: #64748b;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background-color: var(--bg); color: var(--text); padding: 16px; line-height: 1.5; }
-    .container { max-width: 760px; margin: 0 auto; background: var(--card-bg); border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.07); border: 1px solid var(--border); }
-    h1 { font-size: 1.4rem; color: var(--primary); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .subtitle { font-size: 0.85rem; color: var(--muted); margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
-    fieldset { border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 20px; }
-    legend { font-size: 0.9rem; font-weight: 700; color: var(--primary); padding: 0 8px; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    body { background-color: var(--bg); color: var(--text); padding: 12px; line-height: 1.5; }
+    .container { max-width: 760px; margin: 0 auto; background: var(--card-bg); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.07); border: 1px solid var(--border); }
+    h1 { font-size: 1.3rem; color: var(--primary); text-transform: uppercase; }
+    .subtitle { font-size: 0.8rem; color: var(--muted); margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+    fieldset { border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 16px; }
+    legend { font-size: 0.85rem; font-weight: 700; color: var(--primary); padding: 0 6px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
-    .form-group { display: flex; flex-direction: column; margin-bottom: 10px; }
-    label { font-size: 0.8rem; font-weight: 600; color: var(--text); margin-bottom: 4px; }
-    input, select, textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; background: #fff; }
-    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); ring: 2px var(--primary); }
-    textarea { resize: vertical; min-height: 75px; }
+    .form-group { display: flex; flex-direction: column; margin-bottom: 8px; }
+    label { font-size: 0.78rem; font-weight: 600; margin-bottom: 3px; }
+    input, select, textarea { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; background: #fff; }
+    textarea { resize: vertical; min-height: 70px; }
     .parts-table { width: 100%; border-collapse: collapse; margin-top: 6px; }
     .parts-table th, .parts-table td { padding: 6px; border: 1px solid var(--border); }
     .parts-table th { background: #f1f5f9; font-size: 0.75rem; text-align: left; }
-    .parts-table input, .parts-table select { padding: 6px; font-size: 0.8rem; }
-    .file-input { background: #f8fafc; border: 1px dashed var(--border); padding: 14px; text-align: center; border-radius: 6px; cursor: pointer; }
+    .add-row-btn { background: #e2e8f0; color: #1e293b; border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 0.8rem; font-weight: 600; cursor: pointer; margin-top: 8px; }
+    .del-btn { background: #fee2e2; color: #991b1b; border: none; border-radius: 4px; padding: 4px 8px; font-size: 0.75rem; cursor: pointer; }
+    .file-input { background: #f8fafc; border: 1px dashed var(--border); padding: 12px; text-align: center; border-radius: 6px; }
     .submit-btn { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 10px; }
-    .submit-btn:hover { background: var(--primary-hover); }
+    .submit-btn:disabled { background: #94a3b8; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -43,89 +42,95 @@
   <h1>Technical Service Report</h1>
   <div class="subtitle">Complete the fields below to create and export an official PDF report</div>
 
-  <form method="POST" action="/" enctype="multipart/form-data">
+  <form id="reportForm" method="POST" action="/" enctype="multipart/form-data" target="_blank">
     
-    <!-- Client Info -->
     <fieldset>
       <legend>1. Client & Site Information</legend>
       <div class="grid">
         <div class="form-group">
-          <label>Client / Company Name</label>
-          <input type="text" name="client_name" required placeholder="e.g. Al-Mansour Automotive">
+          <label>Client Name</label>
+          <input type="text" name="client_name" required placeholder="e.g. Ibn Sina Pharma">
         </div>
         <div class="form-group">
-          <label>Site / Facility Location</label>
-          <input type="text" name="site_location" placeholder="e.g. 6th of October Warehouse">
+          <label>Site / Location</label>
+          <input type="text" name="site_location" placeholder="e.g. 6th of October">
         </div>
         <div class="form-group">
           <label>Contact Person</label>
-          <input type="text" name="contact_person" placeholder="e.g. Eng. Tamer">
+          <input type="text" name="contact_person" placeholder="e.g. Eng. Hazem">
         </div>
         <div class="form-group">
           <label>Contact Phone</label>
-          <input type="tel" name="contact_phone" placeholder="e.g. +20 100 000 0000">
+          <input type="tel" name="contact_phone" placeholder="e.g. 01220866621">
         </div>
       </div>
     </fieldset>
 
-    <!-- Equipment Details -->
     <fieldset>
-      <legend>2. Equipment Details</legend>
+      <legend>2. Machine Specifications</legend>
       <div class="grid">
         <div class="form-group">
+          <label>Equipment Brand (Logo)</label>
+          <select name="brand">
+            <option value="jungheinrich">Jungheinrich</option>
+            <option value="noblelift">Noblelift</option>
+            <option value="nexen">Nexen</option>
+            <option value="generic">Other / Generic</option>
+          </select>
+        </div>
+        <div class="form-group">
           <label>Equipment Model</label>
-          <input type="text" name="model" required placeholder="e.g. Jungheinrich EKX 515">
+          <input type="text" name="model" required placeholder="e.g. EFG 425 / EKS 215">
         </div>
         <div class="form-group">
           <label>Serial Number (S/N)</label>
-          <input type="text" name="serial_number" required placeholder="e.g. 91548231">
+          <input type="text" name="serial_number" required placeholder="e.g. FN754471">
         </div>
         <div class="form-group">
           <label>Operating Hours (h)</label>
-          <input type="number" name="hours" placeholder="e.g. 3420">
+          <input type="number" name="hours" placeholder="e.g. 586">
         </div>
-        <div class="form-group">
+        <div class="form-group" style="grid-column: span 2;">
           <label>Service Type</label>
           <select name="service_type">
+            <option value="Technical Inspection / Audit">Technical Inspection / Audit</option>
             <option value="Corrective Maintenance">Corrective Breakdown</option>
             <option value="Preventive Maintenance">Preventive Periodic Service</option>
-            <option value="Technical Inspection / Audit">Technical Inspection / Audit</option>
             <option value="Commissioning & Setup">Commissioning & Setup</option>
           </select>
         </div>
       </div>
     </fieldset>
 
-    <!-- Technical Description -->
     <fieldset>
       <legend>3. Diagnosis & Actions Taken</legend>
       <div class="form-group">
         <label>Reported Defect / Customer Complaint</label>
-        <textarea name="reported_issue" placeholder="Describe the fault symptoms, error codes, and root cause..." required></textarea>
+        <textarea name="reported_issue" required></textarea>
       </div>
       <div class="form-group">
-        <label>Corrective Actions & Findings</label>
-        <textarea name="actions_taken" placeholder="Detailed steps performed to resolve or contain the issue..." required></textarea>
+        <label>Actions Taken & Findings</label>
+        <textarea name="actions_taken" required></textarea>
       </div>
     </fieldset>
 
-    <!-- Spare Parts -->
     <fieldset>
       <legend>4. Replaced / Required Parts</legend>
       <div style="overflow-x: auto;">
-        <table class="parts-table">
+        <table class="parts-table" id="partsTable">
           <thead>
             <tr>
-              <th style="width: 30%;">Part Number</th>
+              <th style="width: 25%;">Part Number</th>
               <th style="width: 40%;">Description</th>
-              <th style="width: 15%;">Qty</th>
-              <th style="width: 15%;">Status</th>
+              <th style="width: 12%;">Qty</th>
+              <th style="width: 18%;">Status</th>
+              <th style="width: 5%;"></th>
             </tr>
           </thead>
-          <tbody>
+          <tbody id="partsBody">
             <tr>
-              <td><input type="text" name="part_number[]" placeholder="e.g. 50428912"></td>
-              <td><input type="text" name="part_desc[]" placeholder="Hydraulic Proportional Valve"></td>
+              <td><input type="text" name="part_number[]" placeholder="Part No."></td>
+              <td><input type="text" name="part_desc[]" placeholder="Description"></td>
               <td><input type="number" name="part_qty[]" value="1" min="1"></td>
               <td>
                 <select name="part_status[]">
@@ -133,50 +138,71 @@
                   <option value="Required">Required</option>
                 </select>
               </td>
-            </tr>
-            <tr>
-              <td><input type="text" name="part_number[]"></td>
-              <td><input type="text" name="part_desc[]"></td>
-              <td><input type="number" name="part_qty[]" value="1" min="1"></td>
-              <td>
-                <select name="part_status[]">
-                  <option value="Installed">Installed</option>
-                  <option value="Required">Required</option>
-                </select>
-              </td>
+              <td></td>
             </tr>
           </tbody>
         </table>
       </div>
+      <button type="button" class="add-row-btn" onclick="addPartRow()">+ Add Another Part</button>
     </fieldset>
 
-    <!-- Photographic Evidence -->
     <fieldset>
-      <legend>5. Site & Damage Photos (Max 4)</legend>
+      <legend>5. Site & Fault Photos (Unlimited)</legend>
       <div class="form-group">
-        <label>Attach images from camera or gallery</label>
+        <label>Select as many photos as needed (camera or gallery)</label>
         <input class="file-input" type="file" name="photos" multiple accept="image/*">
       </div>
     </fieldset>
 
-    <!-- Sign-off -->
     <fieldset>
-      <legend>6. Sign-off Details</legend>
+      <legend>6. Verification & Sign-off</legend>
       <div class="grid">
         <div class="form-group">
-          <label>Field Service Engineer</label>
-          <input type="text" name="engineer_name" required placeholder="Technician / Engineer Name">
+          <label>Service Engineer</label>
+          <input type="text" name="engineer_name" required>
         </div>
         <div class="form-group">
           <label>Customer Representative</label>
-          <input type="text" name="client_rep" placeholder="Customer Receiver Name">
+          <input type="text" name="client_rep">
         </div>
       </div>
     </fieldset>
 
-    <button type="submit" class="submit-btn">📄 Generate & Download Service Report (PDF)</button>
+    <button id="submitBtn" type="submit" class="submit-btn">📄 Generate Service Report</button>
   </form>
 </div>
 
+<script>
+  function addPartRow() {
+    const tbody = document.getElementById("partsBody");
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><input type="text" name="part_number[]" placeholder="Part No."></td>
+      <td><input type="text" name="part_desc[]" placeholder="Description"></td>
+      <td><input type="number" name="part_qty[]" value="1" min="1"></td>
+      <td>
+        <select name="part_status[]">
+          <option value="Installed">Installed</option>
+          <option value="Required">Required</option>
+        </select>
+      </td>
+      <td><button type="button" class="del-btn" onclick="this.closest('tr').remove()">✕</button></td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  // Prevent double submissions
+  const form = document.getElementById("reportForm");
+  const btn = document.getElementById("submitBtn");
+
+  form.addEventListener("submit", function() {
+    btn.disabled = true;
+    btn.innerHTML = "⏳ Opening Report... Please wait";
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.innerHTML = "📄 Generate Service Report";
+    }, 4000);
+  });
+</script>
 </body>
 </html>
