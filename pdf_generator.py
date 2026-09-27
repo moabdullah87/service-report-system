@@ -10,14 +10,14 @@ class ServiceReportPDF(FPDF):
         self.brand_logo = brand_logo
 
     def header(self):
-        # 1. Left Logo (MCV) - تم تكبيره لارتفاع 18 مم
+        # 1. Left Logo (MCV)
         if self.mcv_logo and os.path.exists(self.mcv_logo):
             try:
                 self.image(self.mcv_logo, x=10, y=6, w=36, h=18, keep_aspect_ratio=True)
             except Exception:
                 pass
 
-        # 2. Right Logo (Brand) - تم تكبيره لارتفاع 18 مم
+        # 2. Right Logo (Brand)
         if self.brand_logo and os.path.exists(self.brand_logo):
             try:
                 self.image(self.brand_logo, x=154, y=6, w=38, h=18, keep_aspect_ratio=True)
@@ -34,7 +34,6 @@ class ServiceReportPDF(FPDF):
         self.set_text_color(100, 116, 139)
         self.cell(0, 4, "Technical Maintenance & Equipment Inspection", border=0, new_x="LMARGIN", new_y="NEXT", align="C")
         
-        # مسافة للخط الفاصل ليتناسب مع الحجم الجديد للشعارات
         self.set_y(26)
         self.set_draw_color(203, 213, 225)
         self.set_line_width(0.3)
@@ -70,7 +69,7 @@ class ServiceReportPDF(FPDF):
         self.cell(95 - c2_w, 5, str(c2_val or "-"), border=0, new_x="LMARGIN", new_y="NEXT")
 
 
-def generate_service_pdf(data, output_path, photos=None):
+def generate_service_pdf(data, output_path, photos_by_category=None):
     pdf = ServiceReportPDF(
         mcv_logo=data.get("mcv_logo"),
         brand_logo=data.get("brand_logo"),
@@ -88,31 +87,31 @@ def generate_service_pdf(data, output_path, photos=None):
     pdf.cell(95, 5, f"Date: {data.get('date', datetime.today().strftime('%Y-%m-%d'))}", border=0, new_x="LMARGIN", new_y="NEXT", align="R")
     pdf.ln(2)
 
-    # 1. Client Details
+    # 1. Client
     pdf.section_title("1. CLIENT & SITE DETAILS")
     pdf.info_row("Client Name:", data.get("client_name"), "Site / Branch:", data.get("site_location"))
     pdf.info_row("Contact Person:", data.get("contact_person"), "Contact Phone:", data.get("contact_phone"))
     pdf.ln(2)
 
-    # 2. Machine Specifications
+    # 2. Machine
     pdf.section_title("2. MACHINE SPECIFICATIONS")
     pdf.info_row("Brand & Model:", f"{data.get('brand_display')} {data.get('model')}", "Serial Number:", data.get("serial_number"))
     pdf.info_row("Operating Hours:", data.get("hours"), "Service Type:", data.get("service_type"))
     pdf.ln(2)
 
-    # 3. Defect Description
+    # 3. Diagnosis
     pdf.section_title("3. ISSUE DESCRIPTION & ROOT CAUSE")
     pdf.set_font("Helvetica", "", 8)
     pdf.multi_cell(0, 4.5, data.get("reported_issue", "-"))
     pdf.ln(2)
 
-    # 4. Actions Taken
+    # 4. Actions
     pdf.section_title("4. ACTIONS TAKEN & REMARKS")
     pdf.set_font("Helvetica", "", 8)
     pdf.multi_cell(0, 4.5, data.get("actions_taken", "-"))
     pdf.ln(2)
 
-    # 5. Spare Parts Table
+    # 5. Spare Parts
     parts = data.get("parts", [])
     if parts:
         pdf.section_title("5. REPLACED / REQUIRED SPARE PARTS")
@@ -131,50 +130,89 @@ def generate_service_pdf(data, output_path, photos=None):
             pdf.cell(30, 5.5, str(part.get("status", "Installed")), 1, 1, "C")
         pdf.ln(3)
 
-    # 6. Photographic Evidence
-    valid_photos = [p for p in (photos or []) if os.path.exists(p)]
-    if valid_photos:
+    # 6. Photographic Evidence (Categorized & Flexible)
+    photos_dict = photos_by_category or {}
+    categories = [
+        ("Before Repair", photos_dict.get("before", [])),
+        ("Defective Part Evidence", photos_dict.get("defective", [])),
+        ("After Repair / Final Verification", photos_dict.get("after", []))
+    ]
+
+    total_photos = sum(len([p for p in p_list if os.path.exists(p)]) for _, p_list in categories)
+
+    if total_photos > 0:
         if pdf.get_y() > 180:
             pdf.add_page()
 
-        pdf.section_title(f"6. SITE & FAULT PHOTOGRAPHIC EVIDENCE ({len(valid_photos)} Photos)")
+        pdf.section_title(f"6. SITE & FAULT PHOTOGRAPHIC EVIDENCE ({total_photos} Photos)")
         
         box_w = 88
-        box_h = 62
+        box_h = 60
         gap_x = 10
         gap_y = 6
         x_left = 12
         x_right = x_left + box_w + gap_x
 
-        current_y = pdf.get_y() + 2
+        for cat_title, img_list in categories:
+            valid_imgs = [p for p in img_list if os.path.exists(p)]
+            if not valid_imgs:
+                continue
 
-        for idx, img_path in enumerate(valid_photos):
-            col = idx % 2
-            if col == 0 and idx > 0:
-                current_y += box_h + gap_y
-
-            if current_y + box_h > 265:
+            if pdf.get_y() > 235:
                 pdf.add_page()
-                current_y = 20
 
-            cur_x = x_left if col == 0 else x_right
+            # Category Subtitle Badge
+            pdf.set_font("Helvetica", "B", 8.5)
+            pdf.set_text_color(30, 58, 138)
+            pdf.cell(0, 5, f"[ {cat_title} - {len(valid_imgs)} Photo(s) ]", border=0, new_x="LMARGIN", new_y="NEXT", align="L")
+            pdf.ln(1)
 
-            try:
-                pdf.image(img_path, x=cur_x, y=current_y, w=box_w, h=box_h, keep_aspect_ratio=True)
-            except Exception as e:
-                print(f"[PDF_IMAGE_ERROR] {e}")
+            current_y = pdf.get_y()
 
-        pdf.set_y(current_y + box_h + 6)
+            for idx, img_path in enumerate(valid_imgs):
+                col = idx % 2
+                if col == 0 and idx > 0:
+                    current_y += box_h + gap_y
 
-    # 7. Verification & Sign-off
-    if pdf.get_y() > 240:
+                if current_y + box_h > 265:
+                    pdf.add_page()
+                    current_y = 20
+
+                cur_x = x_left if col == 0 else x_right
+
+                try:
+                    pdf.image(img_path, x=cur_x, y=current_y, w=box_w, h=box_h, keep_aspect_ratio=True)
+                except Exception as e:
+                    print(f"[PDF_IMAGE_ERROR] {e}")
+
+            pdf.set_y(current_y + box_h + 5)
+
+    # 7. Verification & Signatures
+    if pdf.get_y() > 235:
         pdf.add_page()
 
     pdf.ln(2)
     pdf.section_title("7. VERIFICATION & SIGN-OFF")
-    pdf.ln(3)
+    pdf.ln(2)
     pdf.info_row("Service Engineer:", data.get("engineer_name", "Service Team"), "Customer Representative:", data.get("client_rep", ""), c1_w=32, c2_w=44)
-    pdf.ln(8)
+    
+    y_sig = pdf.get_y() + 1
+    eng_sig = data.get("engineer_sig_path")
+    client_sig = data.get("client_sig_path")
+
+    if eng_sig and os.path.exists(eng_sig):
+        try:
+            pdf.image(eng_sig, x=15, y=y_sig, w=45, h=16, keep_aspect_ratio=True)
+        except Exception:
+            pass
+
+    if client_sig and os.path.exists(client_sig):
+        try:
+            pdf.image(client_sig, x=115, y=y_sig, w=45, h=16, keep_aspect_ratio=True)
+        except Exception:
+            pass
+
+    pdf.set_y(y_sig + 16)
     pdf.info_row("Signature: ______________________", "", "Signature: ______________________", "", c1_w=50, c2_w=50)
 
     pdf.output(output_path)

@@ -1,4 +1,5 @@
 import os
+import base64
 from datetime import datetime
 from PIL import Image, ImageOps
 from flask import Flask, render_template, request, send_file
@@ -15,7 +16,6 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(REPORTS_FOLDER, exist_ok=True)
 
 def get_next_report_id():
-    """توليد رقم تسلسلي منتظم وحفظه تلقائياً"""
     current_year = datetime.now().strftime("%Y")
     current_count = 1
 
@@ -28,12 +28,47 @@ def get_next_report_id():
         except Exception:
             current_count = 1
 
-    # حفظ الرقم الجديد
     with open(COUNTER_FILE, "w") as f:
         f.write(str(current_count))
 
-    # التنسيق: SR-2026-0001 (أربعة خانات قابلة للزيادة)
     return f"SR-{current_year}-{current_count:04d}"
+
+def save_base64_sig(sig_data, prefix, report_id):
+    if not sig_data or not sig_data.startswith("data:image"):
+        return None
+    try:
+        format_info, img_str = sig_data.split(";base64,")
+        sig_bytes = base64.b64decode(img_str)
+        filename = f"{report_id}_{prefix}.png"
+        path = os.path.join(UPLOAD_FOLDER, filename)
+        with open(path, "wb") as f:
+            f.write(sig_bytes)
+        return path
+    except Exception as e:
+        print(f"Signature decoding error: {e}")
+        return None
+
+def process_photo_batch(files_list, category_name, report_id):
+    saved_paths = []
+    for idx, file in enumerate(files_list):
+        if file and file.filename.strip() != "":
+            temp_path = os.path.join(UPLOAD_FOLDER, f"temp_{category_name}_{idx}_{secure_filename(file.filename)}")
+            file.save(temp_path)
+            
+            final_jpg_path = os.path.join(UPLOAD_FOLDER, f"{report_id}_{category_name}_{idx}.jpg")
+            try:
+                with Image.open(temp_path) as img:
+                    img = ImageOps.exif_transpose(img)
+                    if img.mode != "RGB":
+                        img = img.convert("RGB")
+                    img.save(final_jpg_path, "JPEG", quality=85)
+                saved_paths.append(final_jpg_path)
+            except Exception as e:
+                print(f"[ERROR] Processing {category_name} photo {idx}: {e}")
+            finally:
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+    return saved_paths
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -46,6 +81,17 @@ def index():
             "jungheinrich": "static/logos/jungheinrich.png",
             "noblelift": "static/logos/noblelift.png",
             "nexen": "static/logos/nexen.png"
+        }
+
+        # Process Signatures
+        eng_sig_path = save_base64_sig(request.form.get("engineer_signature"), "eng_sig", report_id)
+        client_sig_path = save_base64_sig(request.form.get("client_signature"), "client_sig", report_id)
+
+        # Process Categorized Photos
+        categorized_photos = {
+            "before": process_photo_batch(request.files.getlist("photos_before"), "before", report_id),
+            "defective": process_photo_batch(request.files.getlist("photos_defective"), "defective", report_id),
+            "after": process_photo_batch(request.files.getlist("photos_after"), "after", report_id)
         }
 
         report_data = {
@@ -66,6 +112,8 @@ def index():
             "actions_taken": request.form.get("actions_taken"),
             "engineer_name": request.form.get("engineer_name"),
             "client_rep": request.form.get("client_rep"),
+            "engineer_sig_path": eng_sig_path,
+            "client_sig_path": client_sig_path,
             "parts": []
         }
 
@@ -84,33 +132,10 @@ def index():
                     "status": status
                 })
 
-        # Save and auto-orient photos
-        uploaded_images = []
-        files = request.files.getlist("photos")
-
-        for idx, file in enumerate(files):
-            if file and file.filename.strip() != "":
-                temp_path = os.path.join(UPLOAD_FOLDER, f"temp_{idx}_{secure_filename(file.filename)}")
-                file.save(temp_path)
-                
-                final_jpg_path = os.path.join(UPLOAD_FOLDER, f"{report_id}_img_{idx}.jpg")
-                try:
-                    with Image.open(temp_path) as img:
-                        img = ImageOps.exif_transpose(img)
-                        if img.mode != "RGB":
-                            img = img.convert("RGB")
-                        img.save(final_jpg_path, "JPEG", quality=85)
-                    uploaded_images.append(final_jpg_path)
-                except Exception as e:
-                    print(f"[ERROR] Could not process {file.filename}: {e}")
-                finally:
-                    if os.path.exists(temp_path):
-                        os.remove(temp_path)
-
         # Generate PDF
         pdf_filename = f"{report_id}.pdf"
         output_pdf_path = os.path.join(REPORTS_FOLDER, pdf_filename)
-        generate_service_pdf(report_data, output_pdf_path, photos=uploaded_images)
+        generate_service_pdf(report_data, output_pdf_path, photos_by_category=categorized_photos)
 
         return send_file(output_pdf_path, as_attachment=False, mimetype="application/pdf")
 
